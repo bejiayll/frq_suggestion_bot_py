@@ -1,11 +1,19 @@
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from configpy.keyboards import *
+from dotenv import load_dotenv
+
 import aiogram
 import asyncio
-from configpy.keyboards import *
+import os
 
-bot = Bot(token="7740957895:AAFoGh2tpFIrnlTu28Zhjahgt1hGGWiQD1o")
+
+load_dotenv()
+TOKEN = os.getenv("TOKEN")
+
+
+bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 @dp.message(Command("start"))
