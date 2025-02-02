@@ -13,14 +13,17 @@ kb_02_settings = [
     [
 
     types.KeyboardButton(text="F.A.Q."),
-    types.KeyboardButton(text="Связь с администрацией")
+    types.KeyboardButton(text="Связь с администрацией"),
+    types.KeyboardButton(text="Домой")
 
     ],
 ]
 
 kb_03_account = [
     [
-        types.KeyboardButton(text="Статус авторизации")
+    types.KeyboardButton(text="Статус авторизации"),
+    types.KeyboardButton(text="Домой")
+
     ]
 ]
 
