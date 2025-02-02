@@ -1,0 +1,20 @@
+/*
+
+statuses:
+0 - unverified
+1 - verified
+2 - banned
+
+permissions: 
+0 - user
+1 - moderator
+2 - superuser
+
+*/
+
+{
+    "user_id" : {
+        "status" : 1, 
+        "permissions" : 2
+    }
+}
