@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters.command import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.client.default import DefaultBotProperties
 from dotenv import load_dotenv
 
 import aiogram
@@ -15,9 +16,14 @@ import os
 
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
+ID_CHANNEL = os.getenv("ID_CHANNEL")
 
 
-bot = Bot(token=TOKEN)
+bot = Bot(token=TOKEN, default=DefaultBotProperties(
+            parse_mode=aiogram.enums.ParseMode.MARKDOWN_V2
+        )
+    )
+
 dp = Dispatcher()
 
 # Functions
@@ -30,11 +36,38 @@ def is_mod(id : str) -> bool:
         return jsc.load("data.json")[str(id)]["permissions"] >= 1
     else: return False
 
-
 def is_superuser(id: str) -> bool:
     if str(id) in jsc.load("data.json"):
         return jsc.load("data.json")[str(id)]["permissions"] > 1
     else: return False
+
+def precending(text: str) -> str:
+    _text = text
+    _text = _text.replace("_", "\_")
+    _text = _text.replace("-", "\-")
+    _text = _text.replace("*", "\*")
+    _text = _text.replace("[", "\[")
+    _text = _text.replace("]", "\]")
+    _text = _text.replace("(", "\)")
+    _text = _text.replace("~", "\~")
+    _text = _text.replace("`", "\`")
+    _text = _text.replace(">", "\>")
+    _text = _text.replace("<", "\<")
+    _text = _text.replace("&", "\&")
+    _text = _text.replace("#", "\#")
+    _text = _text.replace("+", "\+")
+    _text = _text.replace("=", "\=")
+    _text = _text.replace("|", "\|")
+    _text = _text.replace("{", "\{")
+    _text = _text.replace("}", "\}")
+    _text = _text.replace(".", "\.")
+    _text = _text.replace("!", "\!")
+    return _text
+
+async def send_to_admin(text: str):
+    for u in jsc.load("data.json"): 
+        if is_mod(u) or is_superuser(u):
+            await bot.send_message(u, f"{text}")
 
 # Commands handler
 
@@ -49,8 +82,21 @@ async def com_start(message: types.Message):
     )
 
     await message.answer("Приветствую", reply_markup=keyboard)
-    await bot.send_sticker(message.from_user.id, sticker="CAACAgIAAxkBAAEMGcRnnNSfm088IIxaIgNmYZZcZFRLFgACpFcAAoH6YEtxYB8QQkhdCTYE")
 
+# @dp.message(Command("debug_send_to_chat"))
+# async def sendtochat(message: types.Message):
+#     await bot.send_message(ID_CHANNEL, "test")
+
+@dp.message(Command("contact"))
+async def com_contact(message: types.Message):
+    args = message.text.split(maxsplit=1)
+    if len(args) > 1:
+        
+        send_to_admin(f"От пользователя: {message.from_user.id} {message.from_user.full_name}:\n {args[1]}\n")
+
+        await message.answer("Ваше сообщение было доставленно")
+    else:
+        await message.answer("Для отправки сообщения напишит: /contact <Ваше сообщение>")
 
 @dp.message(Command("verify"))
 async def com_verif(message: types.Message):
@@ -104,10 +150,9 @@ async def com_set_value(message: types.Message):
             user = args[1]
             value = args[2]
             to_value = int(args[3])
-
             data = jsc.load("data.json")
             data[id][value] = to_value
-
+            jsc.dump("data.json", data)
             await message.answer(f"Изменено значение {value} для {user} на {to_value}")
 
         except:
@@ -187,6 +232,10 @@ async def account_status_handler(message: types.Message):
 async def faq_handler(message: types.Message):
     await message.answer("W.I.P.")
 
+@dp.message(F.text.lower() == "связь с администрацией")
+async def contact_admin_handler(message: types.Message):
+    await message.answer('Чтобы отправить сообщение администраторам, вызовите комманду " /contact <Ваше сообщение> " ')
+
 # Callback
 
 @dp.callback_query(lambda call: call.data == "verify_req")
@@ -198,17 +247,34 @@ async def callback_req_verify(callback_query: types.CallbackQuery):
         for u in jsc.load("data.json"):
             if is_mod(u): await bot.send_message(int(u), f"Пользователь {user_name} (`{user}`) подал заявку на верификацию.")
         
-        await bot.send_message(user, "Ваша заявка была отправленна.")
+        await bot.send_message(user, "Ваша заявка была отправленна, отправьте ссылку на свой блог, чтобы модераторы могли рассмотреть заявку.")
         base = jsc.load("data.json")
         base[user] = {"status" : 0, 
                       "permissions" : 0}
         jsc.dump("data.json", base)
     
     else: 
-        await bot.send_message(user, "Вы уже отправляли заявку, проверьте статус вашей верификации и при необходимости свяжитесь с администратором.")
+        await bot.send_message(user, "Вы уже отправляли заявку, проверьте статус вашей верификации и при необходимости свяжитесь с администрацией.")
 
+# Message handler
 
+@dp.message()
+async def message_handler(message: types.Message):
+    if "https://" in message.text:
+        if str(message.from_user.id) in jsc.load("data.json"):
+            text = message.text
+            text = precending(text)
+            if jsc.load("data.json")[str(message.from_user.id)]["status"] > 0:
+                await bot.send_message(ID_CHANNEL, text)
+                await message.reply("Ваше сообщение было доставленно")
+                await send_to_admin(f"Ссылка от `{message.from_user.id}`, {message.from_user.full_name}\n {text}")
+            else: 
+                await send_to_admin(f"Ссылка от {message.from_user.id}, {message.from_user.full_name}\n {text}")
+                await message.reply("Ваше сообщение было отправленно администрации")
+        else: 
+            await message.reply("Чтобы отправить ссылку, подайте заявку на верификацию")
 
+                    
 ###=================###
 
 async def main():
