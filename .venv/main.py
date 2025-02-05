@@ -19,10 +19,7 @@ TOKEN = os.getenv("TOKEN")
 ID_CHANNEL = os.getenv("ID_CHANNEL")
 
 
-bot = Bot(token=TOKEN, default=DefaultBotProperties(
-            parse_mode=aiogram.enums.ParseMode.MARKDOWN_V2
-        )
-    )
+bot = Bot(token=TOKEN)
 
 dp = Dispatcher()
 
@@ -41,29 +38,6 @@ def is_superuser(id: str) -> bool:
         return jsc.load("data.json")[str(id)]["permissions"] > 1
     else: return False
 
-def precending(text: str) -> str:
-    _text = text
-    _text = _text.replace("_", "\_")
-    _text = _text.replace("-", "\-")
-    _text = _text.replace("*", "\*")
-    _text = _text.replace("[", "\[")
-    _text = _text.replace("]", "\]")
-    _text = _text.replace("(", "\)")
-    _text = _text.replace("~", "\~")
-    _text = _text.replace("`", "\`")
-    _text = _text.replace(">", "\>")
-    _text = _text.replace("<", "\<")
-    _text = _text.replace("&", "\&")
-    _text = _text.replace("#", "\#")
-    _text = _text.replace("+", "\+")
-    _text = _text.replace("=", "\=")
-    _text = _text.replace("|", "\|")
-    _text = _text.replace("{", "\{")
-    _text = _text.replace("}", "\}")
-    _text = _text.replace(".", "\.")
-    _text = _text.replace("!", "\!")
-    return _text
-
 async def send_to_admin(text: str):
     for u in jsc.load("data.json"): 
         if is_mod(u) or is_superuser(u):
@@ -81,18 +55,26 @@ async def com_start(message: types.Message):
         input_field_placeholder="Выберете действие"
     )
 
-    await message.answer("Приветствую", reply_markup=keyboard)
+    await message.answer("Приветствую.", reply_markup=keyboard)
 
 # @dp.message(Command("debug_send_to_chat"))
 # async def sendtochat(message: types.Message):
 #     await bot.send_message(ID_CHANNEL, "test")
+@dp.message(Command("help"))
+async def com_help(message: types.Message):
+    if is_mod(message.from_user.id):
+        await message.answer("""/start - начать
+        /help - отобразить это меню
+        /verify <user_id> ... <user_id> - верифицировать пользователя
+        /all_users - саписок всех участников   
+        """)
 
 @dp.message(Command("contact"))
 async def com_contact(message: types.Message):
     args = message.text.split(maxsplit=1)
     if len(args) > 1:
         
-        send_to_admin(f"От пользователя: {message.from_user.id} {message.from_user.full_name}:\n {args[1]}\n")
+        await send_to_admin(f"От пользователя: {message.from_user.id} {message.from_user.full_name}:\n {args[1]}\n")
 
         await message.answer("Ваше сообщение было доставленно")
     else:
@@ -158,7 +140,28 @@ async def com_set_value(message: types.Message):
         except:
             await message.answer("Что то пошло не так")
 
-    
+
+@dp.message(Command("all_users"))
+async def com_all_users(message: types.Message):
+    if is_mod(message.from_user.id):
+        all_user = ""
+        data = jsc.load("data.json") 
+        for u in data:
+            sts_int = data[u]["status"] 
+            prm_int = data[u]["permissions"] 
+            status: str
+            perm: str
+            match sts_int:
+                case 0 : status = "❓Ожидает верификацию"
+                case 1 : status = "✅Верифицирован"
+                case 2 : status = "📛Заблокирован"
+            match prm_int:
+                case 0 : perm = "👤Пользователь"
+                case 1 : perm = "🛡️Модератор"
+                case 2 : perm = "⭐Суперпользователь"
+            all_user += (f"{u} : {status} | {perm}\n")
+        await message.answer(all_user)
+
 @dp.message(Command("debug_im_superuser"))
 async def debug_com_user_is_superuser(message: types.Message):
     await message.answer(str(is_superuser(str(message.from_user.id))))
@@ -263,7 +266,7 @@ async def message_handler(message: types.Message):
     if "https://" in message.text:
         if str(message.from_user.id) in jsc.load("data.json"):
             text = message.text
-            text = precending(text)
+            text = text
             if jsc.load("data.json")[str(message.from_user.id)]["status"] > 0:
                 await bot.send_message(ID_CHANNEL, text)
                 await message.reply("Ваше сообщение было доставленно")
