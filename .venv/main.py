@@ -128,18 +128,17 @@ async def com_set_value(message: types.Message):
 
     args = message.text.split()
     if is_superuser((str)(message.from_user.id)):
-        try:
-            user = args[1]
+        #try:
+            user = str(args[1])
             value = args[2]
             to_value = int(args[3])
             data = jsc.load("data.json")
-            data[id][value] = to_value
+            data[user][value] = to_value
             jsc.dump("data.json", data)
             await message.answer(f"Изменено значение {value} для {user} на {to_value}")
 
-        except:
-            await message.answer("Что то пошло не так")
-
+        # except:
+        #     await message.answer("Что то пошло не так")#
 
 @dp.message(Command("all_users"))
 async def com_all_users(message: types.Message):
